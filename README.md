@@ -14,6 +14,14 @@
   <strong>Ücretsiz · Reklamsız · Hesapsız · Çevrimdışı</strong>
 </p>
 
+<p align="center">
+  <a href="https://github.com/koral29-prog/dongun-period-tracker/releases/latest/download/Your-Cycle.apk">
+    <img src="https://img.shields.io/badge/Download-Android_APK-174A32?logo=android&amp;logoColor=white" alt="Download Android APK" />
+  </a>
+</p>
+
+> The downloadable APK is a test build for direct installation. It is not a Play Store-signed production release.
+
 ## About
 
 Your Cycle is a privacy-first period tracker built with Expo, React Native, TypeScript, and Expo Router. Health records remain on the device: the app has no account system, backend, advertising, analytics, or cloud sync.
