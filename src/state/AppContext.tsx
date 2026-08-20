@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 import { AppState as NativeAppState } from 'react-native';
 
-import type { CycleEstimate, DailyLog, PeriodEvent, UserSettings } from '@/domain/types';
+import { defaultSettings, type CycleEstimate, type DailyLog, type PeriodEvent, type UserSettings } from '@/domain/types';
 import { cycleRepository } from '@/services/CycleRepository';
 import { exportService } from '@/services/ExportService';
 import { predictionService } from '@/services/PredictionService';
@@ -26,7 +26,10 @@ const Context = createContext<AppState | null>(null);
 export function AppProvider({ children }: PropsWithChildren) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [settings, setSettings] = useState<UserSettings>(null as unknown as UserSettings);
+  // Providers below AppProvider render before encrypted storage finishes loading.
+  // A real default keeps that first production render safe and is replaced by
+  // the persisted settings as soon as initialization completes.
+  const [settings, setSettings] = useState<UserSettings>(defaultSettings);
   const [events, setEvents] = useState<PeriodEvent[]>([]);
   const [logs, setLogs] = useState<DailyLog[]>([]);
   const [estimate, setEstimate] = useState<CycleEstimate | null>(null);

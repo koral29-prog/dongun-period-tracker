@@ -10,7 +10,8 @@ const ThemeContext = createContext<ThemeContextValue>({ colors: lightPalette, is
 export function ThemeProvider({ children }: PropsWithChildren) {
   const { settings } = useApp();
   const systemScheme = useColorScheme();
-  const isDark = settings.theme === 'dark' || (settings.theme === 'system' && systemScheme === 'dark');
+  const theme = settings?.theme ?? 'system';
+  const isDark = theme === 'dark' || (theme === 'system' && systemScheme === 'dark');
   const value = useMemo(() => ({ colors: isDark ? darkPalette : lightPalette, isDark }), [isDark]);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
