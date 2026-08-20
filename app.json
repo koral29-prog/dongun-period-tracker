@@ -2,7 +2,7 @@
   "expo": {
     "name": "Your Cycle",
     "slug": "your-cycle",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon-v2.png",
     "scheme": "yourcycle",
@@ -10,7 +10,7 @@
     "ios": {
       "icon": "./assets/images/icon-v2.png",
       "bundleIdentifier": "app.yourcycle.mobile",
-      "buildNumber": "2",
+      "buildNumber": "3",
       "supportsTablet": false,
       "infoPlist": {
         "NSFaceIDUsageDescription": "Use Face ID to unlock your private cycle records.",
@@ -19,7 +19,7 @@
     },
     "android": {
       "package": "app.yourcycle.mobile",
-      "versionCode": 2,
+      "versionCode": 3,
       "allowBackup": false,
       "adaptiveIcon": {
         "backgroundColor": "#FBF8F0",
