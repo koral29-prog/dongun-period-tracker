@@ -6,7 +6,7 @@ on:
       version:
         description: Release tag
         required: true
-        default: v1.0.0
+        type: string
 
 permissions:
   contents: write
@@ -38,6 +38,16 @@ jobs:
         # The repository keeps dependencies pinned in package.json. npm install also
         # repairs lockfiles created by older npm versions before the native build.
         run: npm install --no-audit --no-fund
+
+      - name: Validate release tag
+        env:
+          RELEASE_TAG: ${{ inputs.version }}
+        run: |
+          EXPECTED_TAG="v$(node -p "require('./package.json').version")"
+          if [ "$RELEASE_TAG" != "$EXPECTED_TAG" ]; then
+            echo "Release tag must be $EXPECTED_TAG, received: $RELEASE_TAG" >&2
+            exit 1
+          fi
 
       - name: Verify source
         run: |
