@@ -1,5 +1,5 @@
 import * as Crypto from 'expo-crypto';
-import { File } from 'expo-file-system';
+import { File, Paths } from 'expo-file-system';
 import * as SecureStore from 'expo-secure-store';
 import * as SQLite from 'expo-sqlite';
 
@@ -42,7 +42,12 @@ export class CycleRepository {
   }
 
   private async databaseExists() {
-    return new File(SQLite.defaultDatabaseDirectory, DATABASE_NAME).exists;
+    // expo-sqlite exposes an absolute native path on Android (for example
+    // /data/user/0/.../files/SQLite), while expo-file-system's modern File
+    // API requires a file:// URI. Paths.document is already a valid Directory
+    // object and SQLite's default database folder is its "SQLite" child on
+    // both Android and iOS.
+    return new File(Paths.document, 'SQLite', DATABASE_NAME).exists;
   }
 
   private requireDb() {
