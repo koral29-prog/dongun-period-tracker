@@ -11,7 +11,8 @@ permissions:
 
 jobs:
   build-ios:
-    runs-on: macos-15
+    # Expo SDK 57's native Swift packages require Swift 6.2 or newer.
+    runs-on: macos-26
     timeout-minutes: 45
     env:
       CI: "1"
@@ -28,6 +29,11 @@ jobs:
 
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+
+      - name: Verify Xcode toolchain
+        run: |
+          xcodebuild -version
+          swift --version
 
       - name: Verify source
         run: |
