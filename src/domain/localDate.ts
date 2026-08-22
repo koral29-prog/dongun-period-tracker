@@ -3,9 +3,16 @@ import type { LocalDate } from './types';
 const DAY_MS = 86_400_000;
 
 export function parseLocalDate(value: LocalDate) {
+  if (!isValidLocalDate(value)) throw new Error(`Invalid local date: ${value}`);
   const [year, month, day] = value.split('-').map(Number);
-  if (!year || !month || !day) throw new Error(`Invalid local date: ${value}`);
   return { year, month, day };
+}
+
+export function isValidLocalDate(value: unknown): value is LocalDate {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  const normalized = new Date(Date.UTC(year, month - 1, day));
+  return normalized.getUTCFullYear() === year && normalized.getUTCMonth() + 1 === month && normalized.getUTCDate() === day;
 }
 
 export function formatLocalDate(year: number, month: number, day: number): LocalDate {

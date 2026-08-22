@@ -7,8 +7,12 @@ import type { CycleEstimate, Locale, UserSettings } from '@/domain/types';
 const CHANNEL_ID = 'private-cycle-reminders';
 
 export class ReminderScheduler {
-  async reschedule(settings: UserSettings, estimate: CycleEstimate | null) {
+  async cancelAll() {
     await Notifications.cancelAllScheduledNotificationsAsync();
+  }
+
+  async reschedule(settings: UserSettings, estimate: CycleEstimate | null) {
+    await this.cancelAll();
     if (!settings.reminders.enabled) return false;
     const permission = await Notifications.getPermissionsAsync();
     const finalPermission = permission.granted ? permission : await Notifications.requestPermissionsAsync();

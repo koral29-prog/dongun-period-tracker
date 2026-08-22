@@ -8,6 +8,7 @@ import type { AppPalette } from '@/constants/palette';
 import type { ThemePreference } from '@/domain/types';
 import { copy } from '@/i18n/copy';
 import { exportService } from '@/services/ExportService';
+import { privacyLock } from '@/services/PrivacyLock';
 import { reminderScheduler } from '@/services/ReminderScheduler';
 import { useApp } from '@/state/AppContext';
 import { useTheme } from '@/state/ThemeContext';
@@ -18,11 +19,32 @@ export default function SettingsScreen() {
   const app = useApp(); const { settings, events, logs, estimate } = app; const t = copy[settings.locale]; const router = useRouter();
   const { colors } = useTheme(); const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const setReminders = async (enabled: boolean) => { const next = { ...settings, reminders: { ...settings.reminders, enabled } }; const scheduled = await reminderScheduler.reschedule(next, estimate); await app.replaceSettings({ ...next, reminders: { ...next.reminders, enabled: enabled && scheduled } }); if (enabled && !scheduled) Alert.alert(t.reminders, settings.locale === 'tr' ? 'Bildirim izni verilmedi.' : 'Notification permission was not granted.'); };
-  const openExport = () => Alert.alert(t.export, t.exportWarning, [{ text: t.cancel, style: 'cancel' }, { text: t.pdf, onPress: () => exportService.sharePdf(events, logs, settings.locale) }, { text: t.csv, onPress: () => exportService.shareCsv(logs) }]);
-  const remove = () => Alert.alert(t.delete, t.deleteBody, [{ text: t.cancel, style: 'cancel' }, { text: t.confirmDelete, style: 'destructive', onPress: app.deleteAllData }]);
+  const showError = () => Alert.alert(settings.locale === 'tr' ? 'İşlem tamamlanamadı' : 'Couldn’t complete that', settings.locale === 'tr' ? 'Lütfen tekrar dene.' : 'Please try again.');
+  const persist = (patch: Parameters<typeof app.updateSettings>[0]) => { void app.updateSettings(patch).catch(showError); };
+  const setReminders = async (enabled: boolean) => {
+    try {
+      const next = { ...settings, reminders: { ...settings.reminders, enabled } };
+      const scheduled = await reminderScheduler.reschedule(next, estimate);
+      await app.replaceSettings({ ...next, reminders: { ...next.reminders, enabled: enabled && scheduled } });
+      if (enabled && !scheduled) Alert.alert(t.reminders, settings.locale === 'tr' ? 'Bildirim izni verilmedi.' : 'Notification permission was not granted.');
+    } catch { showError(); }
+  };
+  const setLock = async (enabled: boolean) => {
+    if (!enabled) { persist({ lockEnabled: false }); return; }
+    if (!await privacyLock.canEnable()) {
+      Alert.alert(t.appLock, settings.locale === 'tr' ? 'Önce cihazında bir ekran kilidi ayarla.' : 'Set up a device screen lock first.');
+      return;
+    }
+    if (await privacyLock.unlock(settings.locale)) persist({ lockEnabled: true });
+  };
+  const share = (kind: 'pdf' | 'csv') => {
+    const action = kind === 'pdf' ? exportService.sharePdf(events, logs, settings.locale) : exportService.shareCsv(logs);
+    void action.catch(showError);
+  };
+  const openExport = () => Alert.alert(t.export, t.exportWarning, [{ text: t.cancel, style: 'cancel' }, { text: t.pdf, onPress: () => share('pdf') }, { text: t.csv, onPress: () => share('csv') }]);
+  const remove = () => Alert.alert(t.delete, t.deleteBody, [{ text: t.cancel, style: 'cancel' }, { text: t.confirmDelete, style: 'destructive', onPress: () => { void app.deleteAllData().catch(showError); } }]);
   return <ScrollView style={styles.root} contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}><Text style={styles.kicker}>{t.private.toUpperCase()}</Text><Text style={styles.title}>{t.privacySettings}</Text><Text style={styles.lead}>{t.settingsLead}</Text>
-    <View style={styles.group}><SettingRow icon="language" title={t.language} detail="English · Türkçe" action={<View style={styles.segment}><Pressable accessibilityLabel="English" onPress={() => app.updateSettings({ locale: 'en' })} style={[styles.segmentButton, settings.locale === 'en' && styles.segmentActive]}><Text style={[styles.segmentText, settings.locale === 'en' && styles.segmentTextActive]}>EN</Text></Pressable><Pressable accessibilityLabel="Türkçe" onPress={() => app.updateSettings({ locale: 'tr' })} style={[styles.segmentButton, settings.locale === 'tr' && styles.segmentActive]}><Text style={[styles.segmentText, settings.locale === 'tr' && styles.segmentTextActive]}>TR</Text></Pressable></View>} /><SettingRow icon={settings.theme === 'dark' ? 'moon' : settings.theme === 'light' ? 'sunny' : 'phone-portrait-outline'} title={t.appearance} detail={t.appearanceDetail} action={<View style={styles.segment}>{(['system', 'light', 'dark'] as ThemePreference[]).map((option) => { const label = option === 'system' ? t.systemTheme : option === 'light' ? t.lightTheme : t.darkTheme; return <Pressable accessibilityLabel={label} accessibilityState={{ selected: settings.theme === option }} key={option} onPress={() => app.updateSettings({ theme: option })} style={[styles.themeButton, settings.theme === option && styles.segmentActive]}><Ionicons name={option === 'system' ? 'phone-portrait-outline' : option === 'light' ? 'sunny-outline' : 'moon-outline'} size={15} color={settings.theme === option ? colors.onPrimary : colors.muted} /></Pressable>; })}</View>} /><SettingRow icon="notifications-outline" title={t.reminders} detail={settings.locale === 'tr' ? 'Sessiz, yalnızca cihazında' : 'Silent and only on this device'} action={<Switch value={settings.reminders.enabled} onValueChange={setReminders} trackColor={{ true: colors.primary }} />} /><SettingRow icon="lock-closed-outline" title={t.appLock} detail={settings.locale === 'tr' ? 'Biyometri veya cihaz şifresi' : 'Biometrics or device passcode'} action={<Switch value={settings.lockEnabled} onValueChange={(lockEnabled) => app.updateSettings({ lockEnabled })} trackColor={{ true: colors.primary }} />} /></View>
+    <View style={styles.group}><SettingRow icon="language" title={t.language} detail="English · Türkçe" action={<View style={styles.segment}><Pressable accessibilityLabel="English" onPress={() => persist({ locale: 'en' })} style={[styles.segmentButton, settings.locale === 'en' && styles.segmentActive]}><Text style={[styles.segmentText, settings.locale === 'en' && styles.segmentTextActive]}>EN</Text></Pressable><Pressable accessibilityLabel="Türkçe" onPress={() => persist({ locale: 'tr' })} style={[styles.segmentButton, settings.locale === 'tr' && styles.segmentActive]}><Text style={[styles.segmentText, settings.locale === 'tr' && styles.segmentTextActive]}>TR</Text></Pressable></View>} /><SettingRow icon={settings.theme === 'dark' ? 'moon' : settings.theme === 'light' ? 'sunny' : 'phone-portrait-outline'} title={t.appearance} detail={t.appearanceDetail} action={<View style={styles.segment}>{(['system', 'light', 'dark'] as ThemePreference[]).map((option) => { const label = option === 'system' ? t.systemTheme : option === 'light' ? t.lightTheme : t.darkTheme; return <Pressable accessibilityLabel={label} accessibilityState={{ selected: settings.theme === option }} key={option} onPress={() => persist({ theme: option })} style={[styles.themeButton, settings.theme === option && styles.segmentActive]}><Ionicons name={option === 'system' ? 'phone-portrait-outline' : option === 'light' ? 'sunny-outline' : 'moon-outline'} size={15} color={settings.theme === option ? colors.onPrimary : colors.muted} /></Pressable>; })}</View>} /><SettingRow icon="notifications-outline" title={t.reminders} detail={settings.locale === 'tr' ? 'Sessiz, yalnızca cihazında' : 'Silent and only on this device'} action={<Switch value={settings.reminders.enabled} onValueChange={(enabled) => { void setReminders(enabled); }} trackColor={{ true: colors.primary }} />} /><SettingRow icon="lock-closed-outline" title={t.appLock} detail={settings.locale === 'tr' ? 'Biyometri veya cihaz şifresi' : 'Biometrics or device passcode'} action={<Switch value={settings.lockEnabled} onValueChange={(enabled) => { void setLock(enabled); }} trackColor={{ true: colors.primary }} />} /></View>
     <View style={styles.group}><Pressable accessibilityRole="button" onPress={openExport}><SettingRow icon="share-outline" title={t.export} detail="PDF · CSV" action={<Ionicons name="chevron-forward" size={19} color={colors.muted} />} /></Pressable><Pressable accessibilityRole="button" onPress={() => router.push('/privacy')}><SettingRow icon="shield-checkmark-outline" title={t.privacyPolicy} detail={t.private} action={<Ionicons name="chevron-forward" size={19} color={colors.muted} />} /></Pressable></View>
     <Pressable accessibilityRole="button" onPress={remove} style={styles.delete}><Ionicons name="trash-outline" size={19} color={colors.danger} /><Text style={styles.deleteText}>{t.delete}</Text></Pressable><Text style={styles.disclaimer}>{t.notMedical}</Text>
   </ScrollView>;

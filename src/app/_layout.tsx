@@ -11,7 +11,7 @@ import { ThemeProvider, useTheme } from '@/state/ThemeContext';
 Notifications.setNotificationHandler({ handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false }) });
 
 function Navigator() {
-  const { ready, error, settings } = useApp();
+  const { ready, error, settings, retryInitialization, resetEncryptedStorage } = useApp();
   const { colors, isDark } = useTheme();
   const router = useRouter();
   const segments = useSegments();
@@ -23,8 +23,11 @@ function Navigator() {
     if (settings.onboardingComplete && inOnboarding) router.replace('/');
   }, [ready, router, segments, settings?.onboardingComplete]);
 
-  if (!ready || error) return <AppLoading error={error} />;
-  return <PrivacyLockGate><StatusBar style={isDark ? "light" : "dark"} /><Stack screenOptions={{ headerStyle: { backgroundColor: colors.cream }, headerTintColor: colors.forestDark, contentStyle: { backgroundColor: colors.cream } }}>
+  if (!ready || error) {
+    const deviceLocale = Intl.DateTimeFormat().resolvedOptions().locale.toLowerCase().startsWith('tr') ? 'tr' : 'en';
+    return <><StatusBar style={isDark ? 'light' : 'dark'} /><AppLoading error={error} locale={deviceLocale} onRetry={retryInitialization} onReset={resetEncryptedStorage} /></>;
+  }
+  return <PrivacyLockGate key={settings.lockEnabled ? 'lock-on' : 'lock-off'}><StatusBar style={isDark ? "light" : "dark"} /><Stack screenOptions={{ headerStyle: { backgroundColor: colors.cream }, headerTintColor: colors.forestDark, contentStyle: { backgroundColor: colors.cream } }}>
     <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
     <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
     <Stack.Screen name="log" options={{ title: '', presentation: 'formSheet', sheetGrabberVisible: true, sheetAllowedDetents: [0.72, 1], headerShown: false }} />

@@ -4,8 +4,8 @@ const call = 'excludeLocalHealthDataFromBackup()';
 const helper = `
   private func excludeLocalHealthDataFromBackup() {
     let fileManager = FileManager.default
-    guard let library = fileManager.urls(for: .libraryDirectory, in: .userDomainMask).first else { return }
-    var sqliteDirectory = library.appendingPathComponent("SQLite", isDirectory: true)
+    guard let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+    var sqliteDirectory = documents.appendingPathComponent("SQLite", isDirectory: true)
     try? fileManager.createDirectory(at: sqliteDirectory, withIntermediateDirectories: true)
     var resourceValues = URLResourceValues()
     resourceValues.isExcludedFromBackup = true

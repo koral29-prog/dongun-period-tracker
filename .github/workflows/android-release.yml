@@ -52,16 +52,32 @@ jobs:
       - name: Verify source
         run: |
           npm run typecheck
+          npm run lint
           npm test
 
       - name: Generate Android project
         run: npx expo prebuild --platform android --clean
+
+      - name: Verify privacy-critical native config
+        run: |
+          grep -q '^expo.sqlite.useSQLCipher=true$' android/gradle.properties
+          grep -q 'android:allowBackup="false"' android/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.INTERNET" tools:node="remove"' android/app/src/main/AndroidManifest.xml
 
       - name: Build installable APK
         working-directory: android
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
+
+      - name: Verify release manifest stays offline-only
+        run: |
+          MERGED_MANIFEST="$(find android/app/build/intermediates -path '*release*' -name AndroidManifest.xml | head -n 1)"
+          test -n "$MERGED_MANIFEST"
+          if grep -q 'android.permission.INTERNET' "$MERGED_MANIFEST"; then
+            echo "Release manifest unexpectedly contains INTERNET permission" >&2
+            exit 1
+          fi
 
       - name: Prepare release asset
         run: cp android/app/build/outputs/apk/release/app-release.apk Your-Cycle.apk
