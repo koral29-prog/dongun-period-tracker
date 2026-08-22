@@ -7,14 +7,18 @@ import type { CycleEstimate, Locale, UserSettings } from '@/domain/types';
 const CHANNEL_ID = 'private-cycle-reminders';
 
 export class ReminderScheduler {
-  async reschedule(settings: UserSettings, estimate: CycleEstimate | null) {
+  async cancelAll() {
     await Notifications.cancelAllScheduledNotificationsAsync();
+  }
+
+  async reschedule(settings: UserSettings, estimate: CycleEstimate | null) {
+    await this.cancelAll();
     if (!settings.reminders.enabled) return false;
     const permission = await Notifications.getPermissionsAsync();
     const finalPermission = permission.granted ? permission : await Notifications.requestPermissionsAsync();
     if (!finalPermission.granted) return false;
     if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync(CHANNEL_ID, { name: 'Cycle reminders', importance: Notifications.AndroidImportance.DEFAULT, sound: null, vibrationPattern: null, lockscreenVisibility: Notifications.AndroidNotificationVisibility.PRIVATE });
+      await Notifications.setNotificationChannelAsync(CHANNEL_ID, { name: 'Cycle reminders', importance: Notifications.AndroidImportance.DEFAULT, sound: null, vibrationPattern: null, lightColor: '#174A32', lockscreenVisibility: Notifications.AndroidNotificationVisibility.PRIVATE });
     }
     if (estimate) {
       const target = parseLocalDate(estimate.estimatedStartMin);

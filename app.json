@@ -2,7 +2,7 @@
   "expo": {
     "name": "Your Cycle",
     "slug": "your-cycle",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon-v2.png",
     "scheme": "yourcycle",
@@ -10,17 +10,27 @@
     "ios": {
       "icon": "./assets/images/icon-v2.png",
       "bundleIdentifier": "app.yourcycle.mobile",
-      "buildNumber": "3",
+      "buildNumber": "4",
       "supportsTablet": false,
       "infoPlist": {
+        "CFBundleLocalizations": [
+          "en",
+          "tr"
+        ],
         "NSFaceIDUsageDescription": "Use Face ID to unlock your private cycle records.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "app.yourcycle.mobile",
-      "versionCode": 3,
+      "versionCode": 4,
       "allowBackup": false,
+      "blockedPermissions": [
+        "android.permission.INTERNET",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#FBF8F0",
         "foregroundImage": "./assets/images/android-icon-foreground-v2.png"
@@ -32,7 +42,6 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "./plugins/with-local-data-hardening.js",
       "expo-router",
       [
         "expo-sqlite",
@@ -50,12 +59,6 @@
       ],
       "expo-local-authentication",
       [
-        "expo-notifications",
-        {
-          "color": "#174A32"
-        }
-      ],
-      [
         "expo-splash-screen",
         {
           "backgroundColor": "#FBF8F0",
@@ -66,7 +69,8 @@
             "image": "./assets/images/splash-icon-v2.png"
           }
         }
-      ]
+      ],
+      "./plugins/with-local-data-hardening.js"
     ],
     "extra": {
       "privacyMode": "offline-only"

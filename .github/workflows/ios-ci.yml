@@ -1,0 +1,77 @@
+name: Verify iOS build
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-ios:
+    # Expo SDK 57's native Swift packages require Swift 6.2 or newer.
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      CI: "1"
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Verify Xcode toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Verify source
+        run: |
+          npm run typecheck
+          npm run lint
+          npm test
+
+      - name: Generate iOS project
+        run: npx expo prebuild --platform ios --clean --no-install
+
+      - name: Verify privacy-critical native config
+        run: |
+          grep -q '"expo.sqlite.useSQLCipher": "true"' ios/Podfile.properties.json
+          grep -q 'excludeLocalHealthDataFromBackup()' ios/YourCycle/AppDelegate.swift
+          grep -q 'isExcludedFromBackup = true' ios/YourCycle/AppDelegate.swift
+          grep -q '<key>NSFaceIDUsageDescription</key>' ios/YourCycle/Info.plist
+          grep -q '<key>ITSAppUsesNonExemptEncryption</key>' ios/YourCycle/Info.plist
+          if grep -q '<key>aps-environment</key>' ios/YourCycle/YourCycle.entitlements; then
+            echo "Remote push entitlement must not be present in this local-only app" >&2
+            exit 1
+          fi
+
+      - name: Install CocoaPods
+        run: pod install --project-directory=ios
+
+      - name: Compile unsigned iOS Simulator app
+        run: |
+          xcodebuild \
+            -workspace ios/YourCycle.xcworkspace \
+            -scheme YourCycle \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=YES \
+            CODE_SIGNING_ALLOWED=NO \
+            build

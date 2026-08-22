@@ -13,7 +13,7 @@ Your Cycle is an offline-only iOS and Android app. It has no account system, HTT
 
 `CycleRepository` opens `your-cycle.db` with SQLCipher and applies the key immediately after opening. The 256-bit random key is stored with `expo-secure-store` using `WHEN_UNLOCKED_THIS_DEVICE_ONLY`. If the key is unavailable while the encrypted database still exists, the app refuses to regenerate a key and surfaces an explicit recovery error.
 
-Android backup is disabled in the manifest. The custom Expo config plugin marks the iOS `Library/SQLite` directory as excluded from backup before React Native starts. Prebuild verification must confirm both settings after every Expo SDK change.
+Android backup is disabled in the manifest. The custom Expo config plugin marks Expo SQLite's iOS `Documents/SQLite` directory as excluded from backup before React Native starts. Prebuild verification must confirm both settings after every Expo SDK change.
 
 ## Prediction rules
 

@@ -1,11 +1,11 @@
-const { withAppDelegate } = require('@expo/config-plugins');
+const { withAppDelegate, withEntitlementsPlist } = require('@expo/config-plugins');
 
 const call = 'excludeLocalHealthDataFromBackup()';
 const helper = `
   private func excludeLocalHealthDataFromBackup() {
     let fileManager = FileManager.default
-    guard let library = fileManager.urls(for: .libraryDirectory, in: .userDomainMask).first else { return }
-    var sqliteDirectory = library.appendingPathComponent("SQLite", isDirectory: true)
+    guard let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+    var sqliteDirectory = documents.appendingPathComponent("SQLite", isDirectory: true)
     try? fileManager.createDirectory(at: sqliteDirectory, withIntermediateDirectories: true)
     var resourceValues = URLResourceValues()
     resourceValues.isExcludedFromBackup = true
@@ -14,7 +14,7 @@ const helper = `
 `;
 
 module.exports = function withLocalDataHardening(config) {
-  return withAppDelegate(config, (next) => {
+  const withBackupExclusion = withAppDelegate(config, (next) => {
     if (next.modResults.language !== 'swift') throw new Error('with-local-data-hardening requires a Swift AppDelegate');
     let source = next.modResults.contents;
     if (!source.includes(call)) {
@@ -26,6 +26,13 @@ module.exports = function withLocalDataHardening(config) {
       source = `${source.slice(0, delegateEnd)}${helper}${source.slice(delegateEnd)}`;
     }
     next.modResults.contents = source;
+    return next;
+  });
+
+  return withEntitlementsPlist(withBackupExclusion, (next) => {
+    // This app schedules local reminders only. Keep the remote-push capability
+    // out of signed iOS builds even though expo-notifications supports it.
+    delete next.modResults['aps-environment'];
     return next;
   });
 };
