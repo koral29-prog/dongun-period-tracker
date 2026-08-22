@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/images/icon.png" width="144" alt="Your Cycle / Döngün logo" />
+  <img src="assets/images/icon-v2.png" width="144" alt="Your Cycle / Döngün logo" />
 </p>
 
 <h1 align="center">Your Cycle / Döngün</h1>
@@ -63,6 +63,25 @@ npm run ios
 # or
 npm run android
 ```
+
+### iOS and TestFlight
+
+The iOS target uses bundle ID `app.yourcycle.mobile`, SQLCipher, device-only Keychain storage, Face ID with the system passcode fallback, local notifications, and an automatic light/dark splash screen. The encrypted SQLite directory is excluded from iCloud backup. Remote-push entitlement is intentionally removed because reminders are local-only.
+
+```sh
+# Local native project + Simulator/device development build
+npm run prebuild:ios
+npm run ios
+
+# EAS Simulator build (does not require App Store signing)
+npx eas-cli build --platform ios --profile ios-simulator
+
+# Signed App Store/TestFlight build (requires Apple Developer credentials)
+npx eas-cli build --platform ios --profile production
+npx eas-cli submit --platform ios --profile production
+```
+
+GitHub's iOS workflow generates a clean native project, verifies the privacy-critical configuration, and compiles an unsigned Simulator target on every pull request and `main` update.
 
 ## Verify
 
